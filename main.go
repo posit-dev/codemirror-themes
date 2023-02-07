@@ -24,6 +24,14 @@ type Theme struct {
 	Target string
 	File   string
 	Dark   bool
+	HC     bool
+}
+
+type ColorDefaults struct {
+	light   string
+	dark    string
+	hcLight string
+	hcDark  string
 }
 
 func main() {
@@ -99,11 +107,112 @@ func main() {
 			File:   "extension/themes/tokyo-night-storm-color-theme.json",
 			Dark:   true,
 		},
+		// vscode light themes
+		{
+			Name:   "light",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/light_vs.json",
+			Target: "light",
+			Dark:   false,
+		},
+		{
+			Name:   "light-plus",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/light_plus.json",
+			Target: "light-plus",
+			Dark:   false,
+		},
+		{
+			Name:   "light-plus-v2",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/light_plus_experimental.json",
+			Target: "light-plus-v2",
+			Dark:   false,
+		},
+		{
+			Name:   "quiet-light",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-quietlight/themes/quietlight-color-theme.json",
+			Target: "quiet-light",
+			Dark:   false,
+		},
+		{
+			Name:   "solarized-light",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-solarized-light/themes/solarized-light-color-theme.json",
+			Target: "solarized-light",
+			Dark:   false,
+		},
+		// vscode dark themes
+		{
+			Name:   "abyss",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-abyss/themes/abyss-color-theme.json",
+			Target: "abyss",
+			Dark:   true,
+		},
+		{
+			Name:   "dark",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/dark_vs.json",
+			Target: "dark",
+			Dark:   true,
+		},
+		{
+			Name:   "dark-plus",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/dark_plus.json",
+			Target: "dark-plus",
+			Dark:   true,
+		},
+		{
+			Name:   "dark-plus-v2",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/dark_plus_experimental.json",
+			Target: "dark-plus-v2",
+			Dark:   true,
+		},
+		{
+			Name:   "kimbie-dark",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-kimbie-dark/themes/kimbie-dark-color-theme.json",
+			Target: "kimbie-dark",
+			Dark:   true,
+		},
+		{
+			Name:   "monokai",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-monokai/themes/monokai-color-theme.json",
+			Target: "monokai",
+			Dark:   true,
+		},
+		{
+			Name:   "monokai-dimmed",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-monokai-dimmed/themes/dimmed-monokai-color-theme.json",
+			Target: "monokai-dimmed",
+			Dark:   true,
+		},
 		{
 			Name:   "red",
 			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-red/themes/Red-color-theme.json",
 			Target: "red",
 			Dark:   true,
+		},
+		{
+			Name:   "solarized-dark",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-solarized-dark/themes/solarized-dark-color-theme.json",
+			Target: "solarized-dark",
+			Dark:   true,
+		},
+		{
+			Name:   "tomorrow-night-blue",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-tomorrow-night-blue/themes/tomorrow-night-blue-color-theme.json",
+			Target: "tomorrow-night-blue",
+			Dark:   true,
+		},
+		// vscode high contrast themes
+		{
+			Name:   "high-contrast-light",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/hc_light.json",
+			Target: "high-contrast-light",
+			Dark:   false,
+			HC:     true,
+		},
+		{
+			Name:   "high-contrast-dark",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/themes/hc_black.json",
+			Target: "high-contrast-dark",
+			Dark:   true,
+			HC:     true,
 		},
 	}
 
@@ -180,7 +289,7 @@ type VsCodeTheme struct {
 	TokenColors []TokenColor
 }
 
-func find(data VsCodeTheme, keys ...string) Style {
+func find(data VsCodeTheme, theme Theme, defaults ColorDefaults, keys ...string) Style {
 	style := Style{}
 
 	for _, key := range keys {
@@ -226,6 +335,19 @@ func find(data VsCodeTheme, keys ...string) Style {
 	}
 
 	if style.Color == nil {
+		if theme.Dark {
+			if theme.HC {
+				return Style{Color: &defaults.hcDark}
+			} else {
+				return Style{Color: &defaults.dark}
+			}
+		} else {
+			if theme.HC {
+				return Style{Color: &defaults.hcLight}
+			} else {
+				return Style{Color: &defaults.light}
+			}
+		}
 		panic(fmt.Sprintf("Could not find color by: %s", keys))
 	}
 
@@ -273,29 +395,29 @@ func makeTemplateParams(theme Theme, content []byte) TemplateParams {
 		ExportPrefix: kebabToCamelCase(theme.Name),
 		Dark:         theme.Dark,
 		// Layout
-		Background:         find(data, "editor.background"),
-		Foreground:         find(data, "foreground", "input.foreground", "editor.foreground"),
-		Selection:          find(data, "editor.selectionBackground"),
-		Cursor:             find(data, "editorCursor.foreground", "foreground"),
-		DropdownBackground: find(data, "editor.background"),
-		DropdownBorder:     find(data, "dropdown.border", "foreground", "editorSuggestWidget.border"),
-		ActiveLine:         find(data, "editor.lineHighlightBackground", "editor.selectionBackground"),
-		MatchingBracket:    find(data, "editorBracketMatch.background", "editor.lineHighlightBackground", "editor.selectionBackground"),
+		Background:         find(data, theme, ColorDefaults{light: "#ffffff", dark: "#1E1E1E", hcDark: "#000000", hcLight: "#ffffff"}, "editor.background"),
+		Foreground:         find(data, theme, ColorDefaults{light: "#333333", dark: "#BBBBBB", hcDark: "#ffffff", hcLight: "#292929"}, "foreground", "input.foreground", "editor.foreground"),
+		Selection:          find(data, theme, ColorDefaults{light: "#ADD6FF", dark: "#264F78", hcDark: "#f3f518", hcLight: "#0F4A85"}, "editor.selectionBackground"),
+		Cursor:             find(data, theme, ColorDefaults{light: "#333333", dark: "#BBBBBB", hcDark: "#ffffff", hcLight: "#292929"}, "editorCursor.foreground", "foreground"),
+		DropdownBackground: find(data, theme, ColorDefaults{dark: "#252526", light: "#F3F3F3", hcDark: "#0C141F", hcLight: "#ffffff"}, "editor.background"),
+		DropdownBorder:     find(data, theme, ColorDefaults{dark: "#454545", light: "#C8C8C8", hcDark: "#6FC3DF", hcLight: "#0F4A85"}, "dropdown.border", "foreground", "editorSuggestWidget.border"),
+		ActiveLine:         find(data, theme, ColorDefaults{light: "#ADD6FF", dark: "#264F78", hcDark: "#f3f518", hcLight: "#0F4A85"}, "editor.lineHighlightBackground", "editor.selectionBackground"),
+		MatchingBracket:    find(data, theme, ColorDefaults{dark: "#0064001a", light: "#0064001a", hcDark: "#0064001a", hcLight: "#0000"}, "editorBracketMatch.background", "editor.lineHighlightBackground", "editor.selectionBackground"),
 		// Syntax
-		Keyword:   find(data, "keyword"),
-		Storage:   find(data, "storage", "keyword"),
-		Variable:  find(data, "variable", "variable.parameter", "variable.other", "variable.language", "foreground"),
-		Parameter: find(data, "variable.parameter", "variable.other", "variable"),
-		Function:  find(data, "entity.name.function", "support.function", "entity.name", "support"),
-		String:    find(data, "string"),
-		Constant:  find(data, "constant", "constant.character", "constant.keyword"),
-		Type:      find(data, "entity.name.type", "entity.name.class", "support.type", "support"),
-		Class:     find(data, "entity.name.class", "entity.name", "entity"),
-		Number:    find(data, "constant.numeric", "constant"),
-		Comment:   find(data, "comment"),
-		Heading:   find(data, "markup.heading", "markup.heading.setext", "heading.1.markdown entity.name"),
-		Invalid:   find(data, "invalid", "editorError.foreground", "errorForeground", "foreground", "input.foreground"),
-		Regexp:    find(data, "string.regexp", "string"),
+		Keyword:   find(data, theme, ColorDefaults{light: "#0000ff", dark: "#569cd6"}, "keyword"),
+		Storage:   find(data, theme, ColorDefaults{light: "#0000ff", dark: "#569cd6"}, "storage", "keyword"),
+		Variable:  find(data, theme, ColorDefaults{light: "#0070c1", dark: "#4fc1ff"}, "variable", "variable.parameter", "variable.other", "variable.language", "foreground"),
+		Parameter: find(data, theme, ColorDefaults{light: "#333333", dark: "#BBBBBB"}, "variable.parameter", "variable.other", "variable"),
+		Function:  find(data, theme, ColorDefaults{light: "#795e26", dark: "#dcdcaa"}, "entity.name.function", "support.function", "entity.name", "support"),
+		String:    find(data, theme, ColorDefaults{light: "#a31515", dark: "#ce9178"}, "string"),
+		Constant:  find(data, theme, ColorDefaults{light: "#333333", dark: "#BBBBBB"}, "constant", "constant.character", "constant.keyword"),
+		Type:      find(data, theme, ColorDefaults{light: "#267f99", dark: "#4ec9b0"}, "entity.name.type", "entity.name.class", "support.type", "support"),
+		Class:     find(data, theme, ColorDefaults{light: "#267f99", dark: "#4ec9b0"}, "entity.name.class", "entity.name", "entity"),
+		Number:    find(data, theme, ColorDefaults{light: "#098658", dark: "#b5cea8"}, "constant.numeric", "constant"),
+		Comment:   find(data, theme, ColorDefaults{light: "#008000", dark: "#6a9955"}, "comment"),
+		Heading:   find(data, theme, ColorDefaults{light: "#000080", dark: "#000080"}, "markup.heading", "markup.heading.setext", "heading.1.markdown entity.name"),
+		Invalid:   find(data, theme, ColorDefaults{light: "#cd3131", dark: "#f44747"}, "invalid", "editorError.foreground", "errorForeground", "foreground", "input.foreground"),
+		Regexp:    find(data, theme, ColorDefaults{light: "#811f3f", dark: "#646695"}, "string.regexp", "string"),
 	}
 
 	return params
