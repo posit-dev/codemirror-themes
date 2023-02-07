@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tinode/jsonco"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +13,8 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
+
+	"github.com/tinode/jsonco"
 )
 
 // Theme ...
@@ -98,17 +99,32 @@ func main() {
 			File:   "extension/themes/tokyo-night-storm-color-theme.json",
 			Dark:   true,
 		},
+		{
+			Name:   "red",
+			URL:    "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-red/themes/Red-color-theme.json",
+			Target: "red",
+			Dark:   true,
+		},
 	}
 
 	for _, theme := range themes {
 		fmt.Println("Process theme: ", theme.Name)
-		if _, err := os.Stat("./tmp/" + theme.Target + ".zip"); os.IsNotExist(err) {
+
+		var err error
+		var content []byte
+
+		if _, err = os.Stat("./tmp/" + theme.Target + ".zip"); os.IsNotExist(err) {
 			fmt.Println("  Download theme")
 			downloadTheme(theme)
 		}
 
-		fmt.Println("  Extract theme")
-		content, err := extractTheme(theme)
+		if theme.File != "" {
+			fmt.Println("  Extract theme")
+			content, err = extractTheme(theme)
+		} else {
+			content, err = extractThemeJson(theme)
+		}
+
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -258,11 +274,11 @@ func makeTemplateParams(theme Theme, content []byte) TemplateParams {
 		Dark:         theme.Dark,
 		// Layout
 		Background:         find(data, "editor.background"),
-		Foreground:         find(data, "foreground", "input.foreground"),
+		Foreground:         find(data, "foreground", "input.foreground", "editor.foreground"),
 		Selection:          find(data, "editor.selectionBackground"),
 		Cursor:             find(data, "editorCursor.foreground", "foreground"),
 		DropdownBackground: find(data, "editor.background"),
-		DropdownBorder:     find(data, "dropdown.border", "foreground"),
+		DropdownBorder:     find(data, "dropdown.border", "foreground", "editorSuggestWidget.border"),
 		ActiveLine:         find(data, "editor.lineHighlightBackground", "editor.selectionBackground"),
 		MatchingBracket:    find(data, "editorBracketMatch.background", "editor.lineHighlightBackground", "editor.selectionBackground"),
 		// Syntax
@@ -274,7 +290,7 @@ func makeTemplateParams(theme Theme, content []byte) TemplateParams {
 		String:    find(data, "string"),
 		Constant:  find(data, "constant", "constant.character", "constant.keyword"),
 		Type:      find(data, "entity.name.type", "entity.name.class", "support.type", "support"),
-		Class:     find(data, "entity.name.class", "entity.name"),
+		Class:     find(data, "entity.name.class", "entity.name", "entity"),
 		Number:    find(data, "constant.numeric", "constant"),
 		Comment:   find(data, "comment"),
 		Heading:   find(data, "markup.heading", "markup.heading.setext", "heading.1.markdown entity.name"),
@@ -317,7 +333,23 @@ func extractTheme(theme Theme) ([]byte, error) {
 	return nil, fmt.Errorf("Cound not find file %s in extension", theme.File)
 }
 
+func extractThemeJson(theme Theme) ([]byte, error) {
+	file, err := os.Open("tmp/" + theme.Target + ".zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return content, nil
+}
+
 func downloadTheme(theme Theme) {
+
 	resp, err := http.Get(theme.URL)
 	if err != nil {
 		log.Fatal(err)
